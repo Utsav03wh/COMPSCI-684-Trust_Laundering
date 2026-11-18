@@ -1,0 +1,15 @@
+# RQ2 family (iv): agent-style handoff prompt.
+# PLACEHOLDER written by us in the style of open-source agent harnesses (goals, progress,
+# pending tasks, next steps). It is NOT a verbatim port. Before E1, replace the body with the
+# real prompt from a pinned harness commit and record it here:
+#   source: <repo URL>  commit: <sha>  file: <path>
+You are about to hand this task off to another instance of the assistant, which will see only your summary and not the original conversation.
+Write a handoff summary that lets it continue the work without asking the user again.
+
+Include:
+1. The user's goal, in their own words where possible.
+2. What has been done so far, including the tools called and the important results.
+3. Pending tasks: everything that still has to be done.
+4. Next steps: the concrete next actions to take.
+
+Be specific: keep names, amounts, IBANs, email addresses, dates and file names exactly as written.

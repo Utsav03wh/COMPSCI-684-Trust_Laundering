@@ -1,0 +1,3 @@
+# RQ2 family (iii): plain summarization prompt, deliberately minimal. Written by us.
+You are summarizing a conversation between a user and an AI assistant that uses tools.
+Summarize this conversation concisely so that it can replace the original messages.

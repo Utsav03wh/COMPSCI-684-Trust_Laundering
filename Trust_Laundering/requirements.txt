@@ -1,0 +1,7 @@
+# Pinned Day 1. pipeline/llm.py imports private AgentDojo converters, so bump agentdojo only
+# after re-running tests/test_fork.py.
+agentdojo==0.1.35
+openai==3.54.0
+pydantic==2.14.3
+PyYAML==6.0.3
+# vLLM is served on GPU nodes, not imported here; pin its version in runner/serve_vllm.sh.
