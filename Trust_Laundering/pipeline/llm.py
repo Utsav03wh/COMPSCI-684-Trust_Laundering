@@ -28,8 +28,13 @@ from agentdojo.types import ChatMessage
 PIPELINE_NAME_PREFIX = "vllm_parsed"
 
 
-def make_client(base_url: str = "http://localhost:8000/v1", api_key: str = "EMPTY") -> openai.OpenAI:
-    return openai.OpenAI(base_url=base_url, api_key=api_key)
+def make_client(base_url: str = "http://localhost:8000/v1", api_key: str = "EMPTY", timeout: float = 180.0) -> openai.OpenAI:
+    return openai.OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=2)
+
+
+# Qwen3 thinks by default; <think> blocks pollute content and Qwen advises against greedy
+# decoding in thinking mode. vLLM forwards chat_template_kwargs to the chat template.
+NO_THINKING = {"chat_template_kwargs": {"enable_thinking": False}}
 
 
 def _to_openai(message: ChatMessage, model: str) -> dict:
@@ -47,12 +52,14 @@ class VLLMChatLLM(BasePipelineElement):
         temperature: float = 0.0,
         max_tokens: int | None = 1024,
         seed: int | None = 0,
+        extra_body: dict | None = None,
     ) -> None:
         self.client = client
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.seed = seed
+        self.extra_body = extra_body
         self.name = f"{PIPELINE_NAME_PREFIX}/{model}"
 
     def query(
@@ -75,12 +82,16 @@ class VLLMChatLLM(BasePipelineElement):
             kwargs["max_tokens"] = self.max_tokens
         if self.seed is not None:
             kwargs["seed"] = self.seed
+        if self.extra_body:
+            kwargs["extra_body"] = self.extra_body
         completion = self.client.chat.completions.create(**kwargs)
         output = _openai_to_assistant_message(completion.choices[0].message)
         return query, runtime, env, [*messages, output], extra_args
 
 
-def make_summarizer(client: openai.OpenAI, model: str, temperature: float = 0.0, seed: int | None = 0):
+def make_summarizer(
+    client: openai.OpenAI, model: str, temperature: float = 0.0, seed: int | None = 0, extra_body: dict | None = None
+):
     """Return summarize(system_prompt, transcript, max_tokens) -> str for AbstractiveCompactor.
     Same model and endpoint as the agent by default (plan: temperature 0, <= 512 tokens)."""
 
@@ -96,6 +107,8 @@ def make_summarizer(client: openai.OpenAI, model: str, temperature: float = 0.0,
         )
         if seed is not None:
             kwargs["seed"] = seed
+        if extra_body:
+            kwargs["extra_body"] = extra_body
         resp = client.chat.completions.create(**kwargs)
         return resp.choices[0].message.content or ""
 

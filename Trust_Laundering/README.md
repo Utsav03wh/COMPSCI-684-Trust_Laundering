@@ -24,6 +24,19 @@ python tests/test_fork.py                            # CPU-only smoke test, ~1 m
 | `pipeline/trigger.py` | Utsav | Injection detection (normalized line match; YAML re-wraps payloads) |
 | `pipeline/llm.py` | Utsav | vLLM chat element (sends temperature=0, system role) + summarizer |
 | `tests/test_fork.py` | Utsav | Scripted-agent smoke test of the whole branch path |
+| `attacks/` | Siddharth | A1 (`important_instructions`), A2 summarizer-targeted (draft templates), goal markers |
+| `runner/explore_rq1.py` | — | RQ1 exploration: branch A vs B per pair, JSONL + traces, prints ASR / delayed detonation / laundering |
+| `runner/slurm/explore_rq1.sbatch` | — | Serves Qwen3-8B with vLLM (env `vllm-gptoss`) on one GPU and runs the exploration |
+
+## RQ1 exploration
+
+```bash
+cd Trust_Laundering
+sbatch runner/slurm/explore_rq1.sbatch                          # smoke test: 4 banking pairs x {A1, A2}
+LIMIT=0 sbatch --time=03:00:00 runner/slurm/explore_rq1.sbatch  # all 144 banking pairs
+python runner/explore_rq1.py --summarize <results>/raw/<run>.jsonl
+```
+Results go to `/scratch3/workspace/udhanuka_umass_edu-cs684/trust_laundering/results` (workspace expires 2026-12-14).
 
 ## Usage sketch
 
