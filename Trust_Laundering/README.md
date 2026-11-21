@@ -19,6 +19,10 @@ python tests/test_fork.py                            # CPU-only smoke test, ~1 m
 |---|---|---|
 | `compaction/base.py` | Utsav | `Compactor` interface: `compact(messages, cfg) -> CompactionResult` |
 | `compaction/{truncation,abstractive}.py`, `prompts/` | Utsav | Compaction families; register new ones in `compaction/__init__.py` |
+| `compaction/prompts/{codex,opencode}.txt` | Utsav | Real harness compaction prompts, ported verbatim at pinned commits (families `abstractive_codex`, `abstractive_opencode`) |
+| `compaction/transcript.py` | Utsav | Control: history inserted verbatim where the summary would go (no LLM rewriting) |
+| `analysis/audit.py` | — | Checks runs against traces: prefix identity, scoring false positives, re-read vs summary-only split |
+| `runner/benign_utility.py` | — | No-attack utility per user task (model qualification + case filter for `--solvable`) |
 | `pipeline/compaction_element.py` | Utsav | In-loop element: trigger on the injection, then compact or fork |
 | `pipeline/fork.py` | Utsav | `run_prefix` → `ForkState` → `run_branch` (A / B), scoring, save/load |
 | `pipeline/trigger.py` | Utsav | Injection detection (normalized line match; YAML re-wraps payloads) |
@@ -34,7 +38,9 @@ python tests/test_fork.py                            # CPU-only smoke test, ~1 m
 cd Trust_Laundering
 sbatch runner/slurm/explore_rq1.sbatch                          # smoke test: 4 banking pairs x {A1, A2}
 LIMIT=0 sbatch --time=03:00:00 runner/slurm/explore_rq1.sbatch  # all 144 banking pairs
-python runner/explore_rq1.py --summarize <results>/raw/<run>.jsonl
+LIMIT=0 BENIGN=1 CONDITIONS="abstractive_codex:user:verbatim transcript:user" sbatch runner/slurm/explore_rq1.sbatch
+python runner/explore_rq1.py --summarize <results>/raw/<run>.jsonl [--solvable <results>/raw/benign_*.jsonl]
+python analysis/audit.py <results>/raw/explore_rq1_*.jsonl
 ```
 Results go to `/scratch3/workspace/udhanuka_umass_edu-cs684/trust_laundering/results` (workspace expires 2026-12-14).
 

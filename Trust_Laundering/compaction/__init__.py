@@ -5,15 +5,23 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from compaction.abstractive import AbstractiveCompactor, SummarizeFn
+from compaction.abstractive import AbstractiveCompactor, SummarizeFn, codex_wrapper, opencode_wrapper
 from compaction.base import CompactionConfig, CompactionResult, Compactor
+from compaction.transcript import TranscriptCompactor
 from compaction.truncation import TruncationCompactor
 
 # name -> factory(summarize_fn) -> Compactor
 REGISTRY: dict[str, Callable[[SummarizeFn | None], Compactor]] = {
     "truncation": lambda _s: TruncationCompactor(),
+    "transcript": lambda _s: TranscriptCompactor(),  # control: same insertion, no rewriting
     "abstractive_generic": lambda s: AbstractiveCompactor(_need(s), "generic", "abstractive_generic"),
     "abstractive_agent": lambda s: AbstractiveCompactor(_need(s), "agent_style", "abstractive_agent"),
+    # Real harness prompts, ported verbatim at pinned commits (see the prompt files' headers).
+    # Faithful settings: role=user; codex also keeps user messages verbatim (--keep-user-verbatim).
+    "abstractive_codex": lambda s: AbstractiveCompactor(
+        _need(s), "codex", "abstractive_codex", wrapper=codex_wrapper, min_summary_tokens=1024),
+    "abstractive_opencode": lambda s: AbstractiveCompactor(
+        _need(s), "opencode", "abstractive_opencode", wrapper=opencode_wrapper, min_summary_tokens=1024),
     # TODO(Utsav): "extractive" (LLMLingua-2, rate 0.5, tool/assistant text only)
     # TODO(Tanisha): "isolated", "ppc" from defenses/
 }

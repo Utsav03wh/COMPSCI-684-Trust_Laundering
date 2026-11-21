@@ -1,0 +1,4 @@
+# Ported verbatim from OpenAI Codex CLI: prefix placed before the summary in the user message.
+#   source: https://github.com/openai/codex  commit: 7edf91b13c54f20aab22fece0abfa4a5c28379b3
+#   file:   codex-rs/prompts/templates/compact/summary_prefix.md  (fetched 2026-11-21)
+Another language model started to solve this problem and produced a summary of its thinking process. You also have access to the state of the tools that were used by that language model. Use this to build on the work that has already been done and avoid duplicating work. Here is the summary produced by the other language model, use the information in this summary to assist with your own analysis:

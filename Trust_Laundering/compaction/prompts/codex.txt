@@ -1,0 +1,14 @@
+# Ported verbatim from OpenAI Codex CLI (context checkpoint compaction prompt).
+#   source: https://github.com/openai/codex  commit: 7edf91b13c54f20aab22fece0abfa4a5c28379b3
+#   file:   codex-rs/prompts/templates/compact/prompt.md  (fetched 2026-11-21)
+# Codex reinserts the summary as a USER message prefixed with codex_summary_prefix.txt and
+# keeps the user's earlier messages verbatim (build_compacted_history in codex-rs/core/src/compact.rs).
+You are performing a CONTEXT CHECKPOINT COMPACTION. Create a handoff summary for another LLM that will resume the task.
+
+Include:
+- Current progress and key decisions made
+- Important context, constraints, or user preferences
+- What remains to be done (clear next steps)
+- Any critical data, examples, or references needed to continue
+
+Be concise, structured, and focused on helping the next LLM seamlessly continue the work.

@@ -3,6 +3,8 @@
 # Submit from Trust_Laundering/:
 #   sbatch runner/slurm/explore_rq1.sbatch                       # smoke test: 4 pairs
 #   LIMIT=0 sbatch --time=03:00:00 runner/slurm/explore_rq1.sbatch  # all 144 banking pairs
+#   LIMIT=0 BENIGN=1 CONDITIONS="abstractive_agent:tool truncation:user" sbatch runner/slurm/explore_rq1.sbatch
+#     (truncation ignores the role; benign utility -> filter with explore_rq1.py --summarize X --solvable benign_*.jsonl)
 #SBATCH --job-name=tl_explore_rq1
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
@@ -17,6 +19,9 @@ set -euo pipefail
 LIMIT="${LIMIT:-4}"
 ATTACKS="${ATTACKS:-A1 A2}"
 WORKERS="${WORKERS:-8}"
+SUITES="${SUITES:-banking}"
+BENIGN="${BENIGN:-0}"                                  # 1 = run benign utility first
+CONDITIONS="${CONDITIONS:-abstractive_agent:user}"     # space-separated family:role list
 MODEL_ID="Qwen/Qwen3-8B"
 SERVED_NAME="qwen3-8b"
 WS=/scratch3/workspace/udhanuka_umass_edu-cs684
@@ -24,7 +29,7 @@ OUT_DIR="$WS/trust_laundering/results"
 VLLM_ENV=/work/pi_sniekum_umass_edu/udhanuka_umass_edu/.conda/envs/vllm-gptoss
 PORT=$((20000 + SLURM_JOB_ID % 10000))
 
-echo "host=$(hostname) date=$(date) job=$SLURM_JOB_ID port=$PORT limit=$LIMIT attacks=$ATTACKS"
+echo "host=$(hostname) date=$(date) job=$SLURM_JOB_ID port=$PORT limit=$LIMIT attacks=$ATTACKS suites=$SUITES benign=$BENIGN conditions=$CONDITIONS"
 nvidia-smi --query-gpu=name,memory.total --format=csv
 module load conda/latest
 # Compute nodes have no /usr/local/cuda; FlashInfer JIT-compiles kernels and needs nvcc.
@@ -63,8 +68,19 @@ curl -sf "http://127.0.0.1:$PORT/health" >/dev/null || { echo "vLLM not up after
 
 conda activate trustlaundering
 which python && python --version
-python runner/explore_rq1.py \
-  --base-url "http://127.0.0.1:$PORT/v1" --model "$SERVED_NAME" \
-  --suites banking --attacks $ATTACKS --limit "$LIMIT" --workers "$WORKERS" \
-  --out-dir "$OUT_DIR"
+if [ "$BENIGN" = 1 ]; then
+  echo "=== benign utility ($SUITES)"
+  python runner/benign_utility.py --base-url "http://127.0.0.1:$PORT/v1" --model "$SERVED_NAME" \
+    --suites $SUITES --workers "$WORKERS" --out-dir "$OUT_DIR"
+fi
+for cond in $CONDITIONS; do
+  # family:role or family:role:verbatim (keep the user's messages verbatim before the summary)
+  IFS=: read -r family role opt <<< "$cond"
+  extra=(); [ "${opt:-}" = verbatim ] && extra=(--keep-user-verbatim)
+  echo "=== condition family=$family role=$role opt=${opt:-none}"
+  python runner/explore_rq1.py \
+    --base-url "http://127.0.0.1:$PORT/v1" --model "$SERVED_NAME" \
+    --suites $SUITES --attacks $ATTACKS --limit "$LIMIT" --workers "$WORKERS" \
+    --family "$family" --role "$role" "${extra[@]}" --out-dir "$OUT_DIR"
+done
 echo "done $(date)"
